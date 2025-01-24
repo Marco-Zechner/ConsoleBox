@@ -20,10 +20,11 @@ public sealed class DisplayPane : PanelBase
             }
             lines[i] = lines[i].PadRight(width);
         }
-        for (int i = 0; i < Math.Min(lines.Count, height); i++)
+        for (int i = 0; i < height; i++)
         {
+            string line = i < lines.Count ? lines[i] : new string(' ', width);
             Console.SetCursorPosition(left, top + i);
-            Console.Write(lines[i]);
+            Console.Write(line);
         }
     }
 }
