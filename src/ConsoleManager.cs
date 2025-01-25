@@ -13,8 +13,10 @@ public static class ConsoleManager{
         RenderTask = Task.Run(RenderThread);
     }
 
+    private static int frameCount = 0;
     private static async Task RenderThread() {
         IsRunning = true;
+        ConsoleBuffer current = new(Console.WindowWidth, Console.WindowHeight);
         try {
             while (IsRunning)
             {
@@ -24,7 +26,14 @@ public static class ConsoleManager{
                 }
                 lock (RootPanel)
                 {
-                    RootPanel.Render(0, 0, Console.WindowWidth, Console.WindowHeight);
+                    ConsoleBuffer next = new(Console.WindowWidth, Console.WindowHeight);
+                    RootPanel.Render(0, 0, Console.WindowWidth, Console.WindowHeight, next);
+                    if (ConsoleBuffer.GetChanges(current, next, out ConsoleBuffer changes)) {
+                        current = next;
+                        // Console.ForegroundColor = colors[frameCount % colors.Length];
+                        changes.Render();
+                        frameCount++;
+                    }
                 }
                 await Task.Delay(1000 / 60);
             }
@@ -34,7 +43,28 @@ public static class ConsoleManager{
             if (e.InnerException != null)
                 Console.WriteLine(e.InnerException);
         }
+
+        Console.ForegroundColor = ConsoleColor.White;
     }
+
+    private static ConsoleColor[] colors = [
+        // ConsoleColor.Black,
+        ConsoleColor.DarkBlue,
+        ConsoleColor.DarkGreen,
+        ConsoleColor.DarkCyan,
+        ConsoleColor.DarkRed,
+        ConsoleColor.DarkMagenta,
+        ConsoleColor.DarkYellow,
+        ConsoleColor.Gray,
+        ConsoleColor.DarkGray,
+        ConsoleColor.Blue,
+        ConsoleColor.Green,
+        ConsoleColor.Cyan,
+        ConsoleColor.Red,
+        ConsoleColor.Magenta,
+        ConsoleColor.Yellow,
+        ConsoleColor.White
+    ];
 
     public static void Stop() {
         IsRunning = false;

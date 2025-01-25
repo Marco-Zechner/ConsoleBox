@@ -70,50 +70,46 @@ public class FloatingPane : IRenderable {
         }
     }
 
+    public bool IsVisible { get; set; } = true;
+
     public SplitPane Pane { get; } = new();
 
-    public void Render(int top, int left, int width, int height)
+    public void Render(int top, int left, int width, int height, ConsoleBuffer? buffer = null)
     {
-        int x = left + (int)(leftEdgePercent * width);
-        int y = top + (int)(topEdgePercent * height);
+        if (!IsVisible)
+            return;
+
         int w = (int)(widthPercent * width);
         int h = (int)(heightPercent * height);
 
         if (w < 3 || h < 3)
-        {
             return;
-        }
 
-        RenderEdge(y, x, w, h);
+        int x = left + (int)(leftEdgePercent * width);
+        int y = top + (int)(topEdgePercent * height);
+        
+        RenderEdge(y, x, w, h, buffer);
         x++;
         y++;
         w-=2;
         h-=2;
-        Pane.Render(y, x, w, h);
+        Pane.Render(y, x, w, h, buffer);
     }
 
-    private static void RenderEdge(int top, int left, int width, int height)
+    private static void RenderEdge(int top, int left, int width, int height, ConsoleBuffer? buffer = null)
     {
-        Console.SetCursorPosition(left, top);
-        Console.Write("┌");
-        Console.SetCursorPosition(left + width - 1, top);
-        Console.Write("┐");
-        Console.SetCursorPosition(left, top + height - 1);
-        Console.Write("└");
-        Console.SetCursorPosition(left + width - 1, top + height - 1);
-        Console.Write("┘");
+        ConsoleBuffer.WriteOrBuffer(left, top, "┌", buffer);
+        ConsoleBuffer.WriteOrBuffer(left + width - 1, top, "┐", buffer);
+        ConsoleBuffer.WriteOrBuffer(left, top + height - 1, "└", buffer);
+        ConsoleBuffer.WriteOrBuffer(left + width - 1, top + height - 1, "┘", buffer);
 
-        Console.SetCursorPosition(left + 1, top);
-        Console.Write(new string('─', width - 2));
-        Console.SetCursorPosition(left + 1, top + height - 1);
-        Console.Write(new string('─', width - 2));
+        ConsoleBuffer.WriteOrBuffer(left + 1, top, new string('─', width - 2), buffer);
+        ConsoleBuffer.WriteOrBuffer(left + 1, top + height - 1, new string('─', width - 2), buffer);
 
         for (int y = top + 1; y < top + height - 1; y++)
         {
-            Console.SetCursorPosition(left, y);
-            Console.Write("│");
-            Console.SetCursorPosition(left + width - 1, y);
-            Console.Write("│");
+            ConsoleBuffer.WriteOrBuffer(left, y, "│", buffer);
+            ConsoleBuffer.WriteOrBuffer(left + width - 1, y, "│", buffer);
         }
     }
 }

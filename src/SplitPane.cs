@@ -29,7 +29,24 @@ namespace MarcoZechner.ConsoleBox
             return sizes[index];
         }
 
-        public override void Render(int top, int left, int width, int height)
+        private static void RenderVerticalLine(int x, int top, int bottom, char seperatorChar = '│', ConsoleBuffer? buffer = null) {
+            for (int y = top; y < bottom; y++) {
+                if (x < 0) throw new ArgumentOutOfRangeException(nameof(x), $"X must be greater than 0. X: {x}");
+                if (x >= Console.WindowWidth) throw new ArgumentOutOfRangeException(nameof(x), $"X must be less than the console window width. X: {x}, Console.WindowWidth: {Console.WindowWidth}");
+                ConsoleBuffer.WriteOrBuffer(x, y, seperatorChar.ToString(), buffer);
+            }
+        }
+
+        private static void RenderHorizontalLine(int y, int left, int right, char seperatorChar = '─', ConsoleBuffer? buffer = null) {
+            ConsoleBuffer.WriteOrBuffer(left, y, new string(seperatorChar, right - left), buffer);
+        }
+
+        public void AddSeperator(char? seperatorChar = null)
+        {
+            Panels.Add(new SeperatorLine(seperatorChar));
+        }
+
+        public override void Render(int top, int left, int width, int height, ConsoleBuffer? buffer = null)
         {
             if (Panels.Count == 0 && Floating?.Pane.Panels.Count == 0) {
                 return;
@@ -38,16 +55,16 @@ namespace MarcoZechner.ConsoleBox
                 int x = left;
                 for (int i = 0; i < Panels.Count; i++) {
                     if (Panels[i] is SeperatorLine line) {
-                        RenderVerticalLine(x, top, top + height, line.SeperatorChar ?? '│');
+                        RenderVerticalLine(x, top, top + height, line.SeperatorChar ?? '│', buffer);
                         x++;
                         continue;
                     }
 
-                    Panels[i].Render(top, x, PanelSize(i, width), height);
+                    Panels[i].Render(top, x, PanelSize(i, width), height, buffer);
                     x += PanelSize(i, width);
                 }
 
-                Floating?.Render(top, left, width, height);
+                Floating?.Render(top, left, width, height, buffer);
 
                 return;
             }
@@ -55,35 +72,16 @@ namespace MarcoZechner.ConsoleBox
             int y = top;
             for (int i = 0; i < Panels.Count; i++) {
                 if (Panels[i] is SeperatorLine line) {
-                    RenderHorizontalLine(y, left, left + width, line.SeperatorChar ?? '─');
+                    RenderHorizontalLine(y, left, left + width, line.SeperatorChar ?? '─', buffer);
                     y++;
                     continue;
                 }
 
-                Panels[i].Render(y, left, width, PanelSize(i, height));
+                Panels[i].Render(y, left, width, PanelSize(i, height), buffer);
                 y += PanelSize(i, height);
             }
 
-            Floating?.Render(top, left, width, height);
-        }
-
-        private static void RenderVerticalLine(int x, int top, int bottom, char seperatorChar = '│') {
-            for (int y = top; y < bottom; y++) {
-                if (x < 0) throw new ArgumentOutOfRangeException(nameof(x), $"X must be greater than 0. X: {x}");
-                if (x >= Console.WindowWidth) throw new ArgumentOutOfRangeException(nameof(x), $"X must be less than the console window width. X: {x}, Console.WindowWidth: {Console.WindowWidth}");
-                Console.SetCursorPosition(x, y);
-                Console.Write(seperatorChar);
-            }
-        }
-
-        private static void RenderHorizontalLine(int y, int left, int right, char seperatorChar = '─') {
-            Console.SetCursorPosition(left, y);
-            Console.Write(new string(seperatorChar, right - left));
-        }
-
-        public void AddSeperator(char? seperatorChar = null)
-        {
-            Panels.Add(new SeperatorLine(seperatorChar));
+            Floating?.Render(top, left, width, height, buffer);
         }
     }
 }

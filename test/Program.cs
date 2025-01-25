@@ -20,7 +20,6 @@ public class Program
 
     private static DisplayPane keybindsPane = new(){
         RelativeSize = 0.2f,
-        Content = "Ctrl+M: Open Menu\nCtrl+Q: Quit"
     };
 
     private static SplitPane mainScreen = new(){
@@ -29,17 +28,39 @@ public class Program
 
     public static async Task Main()
     {
-        Console.WriteLine("Press Ctrl+M to open the menu.");
-
         mainScreen.Panels.Add(dynamicPane);
         mainScreen.AddSeperator('=');
         mainScreen.Panels.Add(keybindsPane);
 
         ConsoleManager.RootPanel.Panels.Add(mainScreen);
 
+        Task.Run(() => AutoUpdateHints());
+
         HandleInput(editorPane);
 
         ConsoleManager.Stop();
+    }
+
+    private static void AutoUpdateHints() {
+        while (ConsoleManager.IsRunning) {
+            Thread.Sleep(20);
+            if (menuMode != -1) {
+                keybindsPane.Content = menuMode switch
+                {
+                    4 => "Enter: Unselect\nArrow keys: Move\nCtrl+Arrow keys: Resize",
+                    _ => "Enter: Unselect\nNot implemented",
+                };
+                continue;
+            }
+
+            if (ConsoleManager.RootPanel.Floating != null &&  ConsoleManager.RootPanel.Floating.IsVisible)
+            {
+                keybindsPane.Content = "ESC: Close Menu\nArrow up/down: Navigate\nEnter: Select";
+                continue;
+            }
+
+            keybindsPane.Content = "Ctrl+M: Open Menu\nCtrl+Q: Quit\nCtrl+Arrow Left/Right: Split/Unsplit Editor";
+        }
     }
 
     private static void HandleInput(DisplayPane editorPane)
@@ -64,39 +85,48 @@ public class Program
 
                 if (key.Key == ConsoleKey.M)
                 {
-                    if (ConsoleManager.RootPanel.Floating != null)
+                    SplitPane? menuSplit = null;
+                    DisplayPane? leftMenu = null;
+                    DisplayPane? rightMenu = null;
+
+                    if (ConsoleManager.RootPanel.Floating == null)
                     {
-                        ConsoleManager.RootPanel.Floating = null;
-                        continue;
+                        ConsoleManager.RootPanel.Floating = new FloatingPane();
+                        menuSplit = new SplitPane
+                        {
+                            Orientation = Orientation.Horizontal
+                        };
+
+                        leftMenu = new DisplayPane
+                        {
+                            RelativeSize = 0.2f
+                        };
+
+                        rightMenu = new DisplayPane
+                        {
+                            RelativeSize = 0.8f
+                        };
+
+                        menuSplit.Panels.Add(leftMenu);
+                        menuSplit.AddSeperator();
+                        menuSplit.Panels.Add(rightMenu);
+
+                        ConsoleManager.RootPanel.Floating.Pane.Panels.Add(menuSplit);
                     }
-                    ConsoleManager.RootPanel.Floating = new FloatingPane();
-                    var menuSplit = new SplitPane
-                    {
-                        Orientation = Orientation.Horizontal
-                    };
+                    else {
+                        menuSplit = ConsoleManager.RootPanel.Floating.Pane.Panels[0] as SplitPane;
+                        leftMenu = menuSplit?.Panels[0] as DisplayPane;
+                        rightMenu = menuSplit?.Panels[2] as DisplayPane;
+                    }
 
-                    var leftMenu = new DisplayPane
-                    {
-                        RelativeSize = 0.2f
-                    };
-
-                    var rightMenu = new DisplayPane
-                    {
-                        RelativeSize = 0.8f
-                    };
-
-                    menuSplit.Panels.Add(leftMenu);
-                    menuSplit.AddSeperator();
-                    menuSplit.Panels.Add(rightMenu);
-
-                    ConsoleManager.RootPanel.Floating.Pane.Panels.Add(menuSplit);
+                    ConsoleManager.RootPanel.Floating.IsVisible = true;
 
                     leftMenu.Content = "";
                     for (int i = 0; i < menuItems.Count; i++)
                     {
-                        leftMenu.Content += "  " + menuItems[i].menuName + "\n";
+                        leftMenu.Content += (i == menuIndex ? '>' : ' ') + " " + menuItems[i].menuName + "\n";
                     }
-                    rightMenu.Content = menuItems[0].menuContent;
+                    rightMenu.Content = menuItems[menuIndex].menuContent;
 
                     MenuInput(leftMenu, rightMenu);
 
@@ -109,7 +139,7 @@ public class Program
 
                         split?.Panels.Add(new BoxPane() {
                             Title = $"Box Pane {split.Panels.Count}", 
-                            Content = new DisplayPane(),
+                            Content = editorPane,
                             DoubleLines = split.Panels.Count % 2 == 0
                         });
                     }
@@ -149,36 +179,31 @@ public class Program
         ("Move", "Up\nDown\nLeft\nRight")
     ];
 
+
+    private static int menuIndex = 0;
+    private static int menuMode = -1;
     private static void MenuInput(DisplayPane leftMenu, DisplayPane rightMenu)
     {
-        int menuIndex = 0;
-        int mode = -1;
         while (ConsoleManager.IsRunning && ConsoleManager.RootPanel.Floating != null)
         {
             var key = Console.ReadKey(true);
 
             if (key.Key == ConsoleKey.Enter)
             {
-                if (mode == -1)
+                if (menuMode == -1)
                 {
-                    mode = menuIndex;
+                    menuMode = menuIndex;
                     continue;
                 } else 
-                    mode = -1;
+                    menuMode = -1;
             }
 
-            if (mode != -1) {
-                switch (mode) {
-                    case 0:
-                        break;
-                    case 1:
-                        break;
-                    case 2:
-                        break;
-                    case 3:
-                        break;
+            if (menuMode != -1) {
+                switch (menuMode) {
                     case 4:
                         HandleMoveInput(key);
+                        break;
+                    default:
                         break;
                 }
                 continue;
@@ -186,7 +211,7 @@ public class Program
 
             if (key.Key == ConsoleKey.Escape)
             {
-                ConsoleManager.RootPanel.Floating = null;
+                ConsoleManager.RootPanel.Floating.IsVisible = false;
                 return;
             }
 
@@ -258,7 +283,6 @@ public class Program
 
             return;
         }
-        
 
         if (key.Key == ConsoleKey.UpArrow)
         {
@@ -283,7 +307,5 @@ public class Program
             ConsoleManager.RootPanel.Floating.LeftEdgePercent = Math.Min(1-ConsoleManager.RootPanel.Floating.WidthPercent, ConsoleManager.RootPanel.Floating.LeftEdgePercent + 0.01f);
             return;
         }
-
-
     }
 }
