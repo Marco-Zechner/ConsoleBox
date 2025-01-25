@@ -1,7 +1,7 @@
 namespace MarcoZechner.ConsoleBox;
 
-public abstract class PanelBase {
-    private float relativeSize;
+public abstract class PanelBase : IRenderable {
+    private float relativeSize = 1;
     public float RelativeSize {
         get => relativeSize;
         set {

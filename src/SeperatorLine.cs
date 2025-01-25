@@ -7,7 +7,9 @@ internal class SeperatorLine : PanelBase
     {
         get => seperatorChar;
     }
-    public SeperatorLine() {}
+    public SeperatorLine() {
+        RelativeSize = 0;
+    }
 
     public SeperatorLine(char? seperatorChar) {
         this.seperatorChar = seperatorChar;

@@ -11,6 +11,11 @@ public sealed class DisplayPane : PanelBase
 
     public override void Render(int top, int left, int width, int height)
     {
+        if (width < 1 || height < 1)
+        {
+            return;
+        }
+
         Console.SetCursorPosition(left, top);
         List<string> lines = [.. content.Split('\n', height)];
         for (int i = 0; i < lines.Count && lines.Count <= height; i++) {

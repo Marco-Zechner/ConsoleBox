@@ -2,69 +2,69 @@ namespace MarcoZechner.ConsoleBox
 {
     public class SplitPane : PanelBase
     {
-        private Orientation orientation;
-        public Orientation Orientation {
-            get => orientation;
-            set => orientation = value;
-        }
-        private List<PanelBase> panels = [];
-        public List<PanelBase> Panels {
-            get => panels;
-            set => panels = value;
-        }
+        public Orientation Orientation { get; set; }
+        public List<PanelBase> Panels { get; set; } = [];
+        public FloatingPane? Floating { get; set; } = null;
+
+
         public int PanelSize(int index, int totalSize) {
-            if (index < 0 || index >= panels.Count) {
+            if (index < 0 || index >= Panels.Count) {
                 throw new ArgumentOutOfRangeException(nameof(index), "Index out of range.");
             }
             if (totalSize <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(totalSize), "Total size must be greater than 0.");
             }
-            if (panels.Count == 1) {
+            if (Panels.Count == 1) {
                 return totalSize;
             }
 
-            if (panels[index] is SeperatorLine) {
+            if (Panels[index] is SeperatorLine) {
                 return 1;
             }
 
-            totalSize -= panels.Where(p => p is SeperatorLine).Count();
-            float totalRelativeSize = panels.Where(p => p is not SeperatorLine).Sum(p => p.RelativeSize);
-            List<int> sizes = [.. panels.Select(p => (int)(p.RelativeSize / totalRelativeSize * totalSize))];
+            totalSize -= Panels.Where(p => p is SeperatorLine).Count();
+            float totalRelativeSize = Panels.Where(p => p is not SeperatorLine).Sum(p => p.RelativeSize);
+            List<int> sizes = [.. Panels.Select(p => (int)((p is not SeperatorLine ? p.RelativeSize : 0) / totalRelativeSize * totalSize))];
             sizes[^1] += totalSize - sizes.Sum();
             return sizes[index];
         }
 
         public override void Render(int top, int left, int width, int height)
         {
-            if (panels.Count == 0) {
+            if (Panels.Count == 0 && Floating?.Pane.Panels.Count == 0) {
                 return;
             }
-            if (orientation == Orientation.Horizontal) {
+            if (Orientation == Orientation.Horizontal) {
                 int x = left;
-                for (int i = 0; i < panels.Count; i++) {
-                    if (panels[i] is SeperatorLine) {
-                        RenderVerticalLine(x, top, top + height, ((SeperatorLine)panels[i]).SeperatorChar ?? '│');
+                for (int i = 0; i < Panels.Count; i++) {
+                    if (Panels[i] is SeperatorLine line) {
+                        RenderVerticalLine(x, top, top + height, line.SeperatorChar ?? '│');
                         x++;
                         continue;
                     }
 
-                    panels[i].Render(top, x, PanelSize(i, width), height);
+                    Panels[i].Render(top, x, PanelSize(i, width), height);
                     x += PanelSize(i, width);
                 }
+
+                Floating?.Render(top, left, width, height);
+
                 return;
             }
 
             int y = top;
-            for (int i = 0; i < panels.Count; i++) {
-                if (panels[i] is SeperatorLine) {
-                    RenderHorizontalLine(y, left, left + width, ((SeperatorLine)panels[i]).SeperatorChar ?? '─');
+            for (int i = 0; i < Panels.Count; i++) {
+                if (Panels[i] is SeperatorLine line) {
+                    RenderHorizontalLine(y, left, left + width, line.SeperatorChar ?? '─');
                     y++;
                     continue;
                 }
 
-                panels[i].Render(y, left, width, PanelSize(i, height));
+                Panels[i].Render(y, left, width, PanelSize(i, height));
                 y += PanelSize(i, height);
             }
+
+            Floating?.Render(top, left, width, height);
         }
 
         private static void RenderVerticalLine(int x, int top, int bottom, char seperatorChar = '│') {
@@ -83,7 +83,7 @@ namespace MarcoZechner.ConsoleBox
 
         public void AddSeperator(char? seperatorChar = null)
         {
-            panels.Add(new SeperatorLine(seperatorChar));
+            Panels.Add(new SeperatorLine(seperatorChar));
         }
     }
 }
