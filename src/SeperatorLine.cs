@@ -15,7 +15,7 @@ internal class SeperatorLine : PanelBase
         this.seperatorChar = seperatorChar;
     }
 
-    public override void Render(int top, int left, int width, int height, ConsoleBuffer? buffer = null)
+    public override void Render(int top, int left, int width, int height, RenderBuffer? buffer = null)
     {
         throw new NotImplementedException();
     }

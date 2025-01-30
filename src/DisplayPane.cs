@@ -9,7 +9,7 @@ public sealed class DisplayPane : PanelBase
         set => content = value;
     }
 
-    public override void Render(int top, int left, int width, int height, ConsoleBuffer? buffer = null)
+    public override void Render(int top, int left, int width, int height, RenderBuffer buffer)
     {
         if (width < 1 || height < 1)
         {
@@ -27,7 +27,7 @@ public sealed class DisplayPane : PanelBase
         for (int i = 0; i < height; i++)
         {
             string line = i < lines.Count ? lines[i] : new string(' ', width);
-            ConsoleBuffer.WriteOrBuffer(left, top + i, line, buffer);
+            buffer.Write(left, top + i, line);
         }
     }
 }

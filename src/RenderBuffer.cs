@@ -2,13 +2,13 @@ using System.Text;
 
 namespace MarcoZechner.ConsoleBox;
 
-public class ConsoleBuffer(int width, int height)
+public class RenderBuffer(int width, int height)
 {
     public int Width { get; } = width;
     public int Height { get; } = height;
     public char?[,] Buffer { get; } = new char?[height, width];
 
-    public ConsoleBuffer(ConsoleBuffer original) : this(original.Width, original.Height)
+    public RenderBuffer(RenderBuffer original) : this(original.Width, original.Height)
     {
         for (int y = 0; y < Height; y++)
         {
@@ -19,10 +19,21 @@ public class ConsoleBuffer(int width, int height)
         }
     }
 
-    public void Clear() {
+    public RenderBuffer(int width, int height, char? filler) : this(width, height)
+    {
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                Buffer[y, x] = filler;
+            }
+        }
+    }
+
+    public void Clear(char? clearChar = ' ') {
         for (int y = 0; y < Height; y++) {
             for (int x = 0; x < Width; x++) {
-                Buffer[y, x] = ' ';
+                Buffer[y, x] = clearChar;
             }
         }
     }
@@ -39,6 +50,8 @@ public class ConsoleBuffer(int width, int height)
             }
             return;
         }
+
+        text = text.Replace("\t", "    ");
 
         for (int i = 0; i < text.Length; i++) {
             if (x + i >= Width) {
@@ -58,7 +71,7 @@ public class ConsoleBuffer(int width, int height)
         Buffer[y, x] = c;
     }
 
-    public static bool GetChanges(ConsoleBuffer before, ConsoleBuffer after, out ConsoleBuffer changes) {
+    public static bool GetChanges(RenderBuffer before, RenderBuffer after, out RenderBuffer changes) {
         bool hasChanges = false;
         changes = new(after.Width, after.Height);
         for (int y = 0; y < after.Height; y++) {
@@ -98,14 +111,5 @@ public class ConsoleBuffer(int width, int height)
             Console.SetCursorPosition(x, y);
             Console.Write(sb.ToString());
         }
-    }
-    public static void WriteOrBuffer(int left, int top, string text, ConsoleBuffer? buffer = null) {
-    if (buffer == null) {
-        Console.SetCursorPosition(left, top);
-        Console.Write(text);
-        return;
-    }
-
-    buffer.Write(left, top, text);
     }
 }

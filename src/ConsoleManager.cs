@@ -16,7 +16,7 @@ public static class ConsoleManager{
     private static int frameCount = 0;
     private static async Task RenderThread() {
         IsRunning = true;
-        ConsoleBuffer current = new(Console.WindowWidth, Console.WindowHeight);
+        RenderBuffer current = new(Console.WindowWidth, Console.WindowHeight);
         try {
             while (IsRunning)
             {
@@ -26,9 +26,9 @@ public static class ConsoleManager{
                 }
                 lock (RootPanel)
                 {
-                    ConsoleBuffer next = new(Console.WindowWidth, Console.WindowHeight);
+                    RenderBuffer next = new(Console.WindowWidth, Console.WindowHeight);
                     RootPanel.Render(0, 0, Console.WindowWidth, Console.WindowHeight, next);
-                    if (ConsoleBuffer.GetChanges(current, next, out ConsoleBuffer changes)) {
+                    if (RenderBuffer.GetChanges(current, next, out RenderBuffer changes)) {
                         current = next;
                         // Console.ForegroundColor = colors[frameCount % colors.Length];
                         changes.Render();

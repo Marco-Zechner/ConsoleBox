@@ -74,7 +74,7 @@ public class FloatingPane : IRenderable {
 
     public SplitPane Pane { get; } = new();
 
-    public void Render(int top, int left, int width, int height, ConsoleBuffer? buffer = null)
+    public void Render(int top, int left, int width, int height, RenderBuffer buffer)
     {
         if (!IsVisible)
             return;
@@ -96,20 +96,20 @@ public class FloatingPane : IRenderable {
         Pane.Render(y, x, w, h, buffer);
     }
 
-    private static void RenderEdge(int top, int left, int width, int height, ConsoleBuffer? buffer = null)
+    private static void RenderEdge(int top, int left, int width, int height, RenderBuffer buffer)
     {
-        ConsoleBuffer.WriteOrBuffer(left, top, "┌", buffer);
-        ConsoleBuffer.WriteOrBuffer(left + width - 1, top, "┐", buffer);
-        ConsoleBuffer.WriteOrBuffer(left, top + height - 1, "└", buffer);
-        ConsoleBuffer.WriteOrBuffer(left + width - 1, top + height - 1, "┘", buffer);
+        buffer.Write(left, top, "┌");
+        buffer.Write(left + width - 1, top, "┐");
+        buffer.Write(left, top + height - 1, "└");
+        buffer.Write(left + width - 1, top + height - 1, "┘");
 
-        ConsoleBuffer.WriteOrBuffer(left + 1, top, new string('─', width - 2), buffer);
-        ConsoleBuffer.WriteOrBuffer(left + 1, top + height - 1, new string('─', width - 2), buffer);
+        buffer.Write(left + 1, top, new string('─', width - 2));
+        buffer.Write(left + 1, top + height - 1, new string('─', width - 2));
 
         for (int y = top + 1; y < top + height - 1; y++)
         {
-            ConsoleBuffer.WriteOrBuffer(left, y, "│", buffer);
-            ConsoleBuffer.WriteOrBuffer(left + width - 1, y, "│", buffer);
+            buffer.Write(left, y, "│");
+            buffer.Write(left + width - 1, y, "│");
         }
     }
 }
