@@ -16,6 +16,8 @@ public sealed class DisplayPane : PanelBase
             return;
         }
 
+        content = content.Replace("\t", "    ").Replace("\r\n", "\n").Replace("\r", "\n");
+
         List<string> lines = [.. content.Split('\n', height)];
         for (int i = 0; i < lines.Count && lines.Count <= height; i++) {
             if (lines[i].Length > width) {

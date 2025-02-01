@@ -1,89 +1,131 @@
-
 namespace MarcoZechner.ConsoleBox;
 
-public class PanelManager : PanelBase
+public class PanelManager
 {   
     // static 
-    public static bool IsRendering => activePanelManager != null;
     private static PanelManager? activePanelManager;
     public static readonly Lock RenderLock = new();
     private static bool stopSignal = false;
     private static bool subscribedToExit = false;
 
     // instance
+    public bool IsRendering => activePanelManager == this;
     public PanelBase RootPanel {get; set;} = new DisplayPane(){
-        Content = "No Root Panel Set\n\t\tdfv\n\t\tdfbdf\n\t\tdfv\n\t\tdfbdf\n\t\tdfv\n\t\tdfbdf\n\t\tdfv\n\t\tdfbdf\n\t\tdfv\n\t\tdfbdf\n\t\tdfv\n\t\tdfbdf\n\t\tdfv\n\t\tdfbdf"
+        Content = "No Root Panel Set"
     };
-    private readonly Action<ConsoleKeyInfo>? handleInputMethod;
+    public Action<ConsoleKeyInfo>? HandleInputMethod {get; set;}
+    public Func<PanelBase, RenderBuffer, Task>? BeforeRender {get; set;} = null;
     public string? ExitReason {get; private set;} = null;
-    private bool Debug_ColorUpdates {get; set;} = true;
+    private bool debug_ColorUpdates = true;
+    public bool Debug_ColorUpdates {get; set;} = true;
+    private bool instanceStopSignal = false;
+    private ThreadState renderThread = ThreadState.Inactive;
+    RenderBuffer last = new(Console.WindowWidth, Console.WindowHeight); 
+    RenderBuffer current = new(Console.WindowWidth, Console.WindowHeight);
+
+
+    private enum ThreadState {
+        Inactive,
+        Running,
+        Waiting,
+        Finished,
+    }
 
     public PanelManager() {
-        handleInputMethod = null;
+        HandleInputMethod = null;
     }
-
-    public PanelManager(Action<ConsoleKeyInfo> handleInputMethod) {
-        this.handleInputMethod = handleInputMethod;
-    }
-
-    public override void Render(int top, int left, int width, int height, RenderBuffer buffer) 
-    => RootPanel.Render(top, left, width, height, buffer);
-
+    
     public void Start() {
-        StartRenderThread(this, handleInputMethod);
-        while (!IsRendering) {
-            Task.Delay(20);
-        }
-    }
+        stopSignal = false;
+        instanceStopSignal = false;
 
-    public static void Stop() {
-        stopSignal = true;
-            activePanelManager = null;
-        lock (RenderLock) {
-        }
-        Console.Clear();
-    }
-
-    public static void StartRenderThread(
-        PanelManager panelManager,
-        Action<ConsoleKeyInfo>? handleInput = null) 
-    {
         if (activePanelManager != null) {
             throw new Exception("Can't render 2 PanelManagers at the same time.\nAnother PanelManager is already active and needs to be stopped first.\nDid you perhaps wanted to add this PanelManager as a Panel to the other one instead of Starting it?");
         }
+
+        if (renderThread == ThreadState.Waiting) {
+            activePanelManager = this;
+            last = new(Console.WindowWidth, Console.WindowHeight);
+            current = new(Console.WindowWidth, Console.WindowHeight);
+            return;
+        }
+
+        renderThread = ThreadState.Inactive;
 
         if (!subscribedToExit) {
             AppDomain.CurrentDomain.ProcessExit += (sender, e) => Stop();
             subscribedToExit = true;
         }
 
-        _ = Task.Run(() => RenderThread(panelManager));
-        var inputMethod = handleInput ?? panelManager.handleInputMethod;
+        _ = Task.Run(() => RenderThread());
+        var inputMethod = HandleInputMethod;
         if (inputMethod != null) {
             InputThread(inputMethod);
         }
+        while (renderThread != ThreadState.Finished && renderThread != ThreadState.Inactive) {
+            Task.Delay(1000/60);
+        }
     }
 
-    private static async Task RenderThread(PanelManager panelManager) {
-        activePanelManager = panelManager;
-        RenderBuffer last = new(Console.WindowWidth, Console.WindowHeight); 
-        RenderBuffer current = new(Console.WindowWidth, Console.WindowHeight);
+    public void Pause() {
+        activePanelManager = null;
+        while (renderThread != ThreadState.Waiting) {
+            Task.Delay(1000/60);
+        }
+    }
+
+    public void Stop() {
+        instanceStopSignal = true;
+    }
+
+    public static void StopAll() {
+        stopSignal = true;
+        activePanelManager = null;
+        Console.SetCursorPosition(Console.WindowWidth - 1, Console.WindowHeight - 1);
+        Console.WriteLine();
+    }
+
+    private async Task RenderThread() {
+        activePanelManager = this;
+        renderThread = ThreadState.Running;
         try {
-            while (IsRendering) {
+            while (instanceStopSignal == false && stopSignal == false) {
+                if (!IsRendering) {
+                    renderThread = ThreadState.Waiting;
+                    await Task.Delay(1000/60);
+                    continue;
+                } else {
+                    renderThread = ThreadState.Running;
+                }
+
+                BeforeRender?.Invoke(RootPanel, current);
+
                 RenderBuffer next = new(Console.WindowWidth, Console.WindowHeight, ' ');
                 lock (RenderLock) {
-                    panelManager.RootPanel.Render(0, 0, Console.WindowWidth, Console.WindowHeight, next);
+                    RootPanel.Render(0, 0, Console.WindowWidth, Console.WindowHeight, next);
                 }
                 Console.CursorVisible = false;
-                if (panelManager.Debug_ColorUpdates && RenderBuffer.GetChanges(last, current, out RenderBuffer changes)) {
+                bool renderedLastTime = RenderBuffer.GetChanges(last, current, out RenderBuffer changes);
+                if (debug_ColorUpdates != Debug_ColorUpdates && Debug_ColorUpdates) {
+                    debug_ColorUpdates = Debug_ColorUpdates;
+                    renderedLastTime = true;
+                    changes = next;
+                }
+                if (Debug_ColorUpdates && renderedLastTime) {
                     last = current;
                     Console.ForegroundColor = ConsoleColor.DarkGray;
                     changes.Render();
                 }
-                if (RenderBuffer.GetChanges(current, next, out changes)) {
+
+                bool renderThisTime = RenderBuffer.GetChanges(current, next, out changes);
+                if (debug_ColorUpdates != Debug_ColorUpdates && !Debug_ColorUpdates) {
+                    debug_ColorUpdates = Debug_ColorUpdates;
+                    renderThisTime = true;
+                    changes = next;
+                }
+                if (renderThisTime) {
                     current = next;
-                    if (panelManager.Debug_ColorUpdates)
-                        Console.ForegroundColor = ConsoleColor.White;
+                    Console.ForegroundColor = ConsoleColor.White;
                     changes.Render();
                 }
                 await Task.Delay(1000/ 60);
@@ -98,20 +140,25 @@ public class PanelManager : PanelBase
         }
         finally {
             Console.ForegroundColor = ConsoleColor.White;
-            activePanelManager = null;
+            if (activePanelManager == this) {
+                activePanelManager = null;
+            }
+            renderThread = ThreadState.Finished;
         }
     }
 
-    private static void InputThread(Action<ConsoleKeyInfo>? handleInput) {
-        while(!IsRendering) {
-            Task.Delay(10);
-        }
-        while (IsRendering) {
-            ConsoleKeyInfo key = Console.ReadKey(true);
-            lock (RenderLock) {
-                handleInput?.Invoke(key);
+    private void InputThread(Action<ConsoleKeyInfo>? handleInput) {
+        while (stopSignal == false && instanceStopSignal == false) {
+            if (!IsRendering) {
+                Task.Delay(1000/60);
+                continue;
             }
-            if (stopSignal) return;
-        }
+            if (Console.KeyAvailable == false) {
+                Task.Delay(1000/60);
+                continue;
+            }
+            ConsoleKeyInfo key = Console.ReadKey(true);
+            handleInput?.Invoke(key);
+        };
     }
 }

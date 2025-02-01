@@ -74,6 +74,14 @@ public class FloatingPane : IRenderable {
 
     public SplitPane Pane { get; } = new();
 
+    public FloatingPane () {
+
+    }
+
+    public FloatingPane (PanelBase panel) {
+        Pane.Panels.Add(panel);
+    }
+
     public void Render(int top, int left, int width, int height, RenderBuffer buffer)
     {
         if (!IsVisible)
@@ -88,6 +96,10 @@ public class FloatingPane : IRenderable {
         int x = left + (int)(leftEdgePercent * width);
         int y = top + (int)(topEdgePercent * height);
         
+        if (Pane.Panels.Count == 1 && Pane.Panels[0] is BoxPane) {
+            Pane.Render(y, x, w, h, buffer);
+            return;
+        }
         RenderEdge(y, x, w, h, buffer);
         x++;
         y++;
