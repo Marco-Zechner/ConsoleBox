@@ -6,20 +6,24 @@ public class Test1{
 
     private static readonly BoxPane activePane = new() {
         Title = "Active Pane",
-        Content = selectedPane
+        Content = selectedPane,
+        PanelName = "Active Pane"
     };
 
     private static readonly BoxPane inactive = new() {
         Title = "Inactive Pane",
-        Content = selectedPane == left ? right : left
+        Content = selectedPane == left ? right : left,
+        PanelName = "Inactive Pane"
     };
 
     private static readonly DisplayPane left = new() {
-        Content = "Left"
+        Content = "Left",
+        PanelName = "Left Pane"
     };
 
     private static readonly DisplayPane right = new() {
-        Content = "Right"
+        Content = "Right",
+        PanelName = "Right Pane"
     };
 
     private static readonly PanelManager subManager = new() {
@@ -71,7 +75,8 @@ public class Test1{
 
     }
 
-    public static async Task BeforeRender(PanelBase root, RenderBuffer current) {
+    public static Task BeforeRender(PanelBase root, RenderBuffer current)
+    {
         activePane.Content = selectedPane;
         inactive.Content = selectedPane == left ? right : left;
 
@@ -86,5 +91,7 @@ public class Test1{
                 Orientation = Orientation.Horizontal,
             };
         }
+
+        return Task.CompletedTask;
     }
 }

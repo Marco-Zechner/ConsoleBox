@@ -74,6 +74,8 @@ public class FloatingPane : IRenderable {
 
     public SplitPane Pane { get; } = new();
 
+    public required string PanelName { init; get; }
+
     public FloatingPane () {
 
     }

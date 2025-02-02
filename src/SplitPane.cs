@@ -9,10 +9,10 @@ namespace MarcoZechner.ConsoleBox
 
         public int PanelSize(int index, int totalSize) {
             if (index < 0 || index >= Panels.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index), "Index out of range.");
+                throw new ArgumentOutOfRangeException(nameof(index), $"Index out of range in {PanelName}");
             }
             if (totalSize <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(totalSize), "Total size must be greater than 0.");
+                throw new ArgumentOutOfRangeException(nameof(totalSize), $"Total size must be greater than 0 in {PanelName}");
             }
             if (Panels.Count == 1) {
                 return totalSize;

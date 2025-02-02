@@ -4,6 +4,7 @@ public class PanelManager
 {   
     // static 
     private static PanelManager? activePanelManager;
+    private static List<PanelManager> waitingManagers = new();
     public static readonly Lock RenderLock = new();
     private static bool stopSignal = false;
     private static bool subscribedToExit = false;
@@ -20,8 +21,8 @@ public class PanelManager
     public bool Debug_ColorUpdates {get; set;} = true;
     private bool instanceStopSignal = false;
     private ThreadState renderThread = ThreadState.Inactive;
-    RenderBuffer last = new(Console.WindowWidth, Console.WindowHeight); 
-    RenderBuffer current = new(Console.WindowWidth, Console.WindowHeight);
+    private RenderBuffer last = new(Console.WindowWidth, Console.WindowHeight); 
+    private RenderBuffer current = new(Console.WindowWidth, Console.WindowHeight);
 
 
     private enum ThreadState {
@@ -29,6 +30,7 @@ public class PanelManager
         Running,
         Waiting,
         Finished,
+        Error,
     }
 
     public PanelManager() {
@@ -44,6 +46,9 @@ public class PanelManager
         }
 
         if (renderThread == ThreadState.Waiting) {
+            if (waitingManagers.Contains(this)) {
+                waitingManagers.Remove(this);
+            }
             activePanelManager = this;
             last = new(Console.WindowWidth, Console.WindowHeight);
             current = new(Console.WindowWidth, Console.WindowHeight);
@@ -57,12 +62,13 @@ public class PanelManager
             subscribedToExit = true;
         }
 
+        activePanelManager = this;
         _ = Task.Run(() => RenderThread());
         var inputMethod = HandleInputMethod;
         if (inputMethod != null) {
             InputThread(inputMethod);
         }
-        while (renderThread != ThreadState.Finished && renderThread != ThreadState.Inactive) {
+        while (renderThread != ThreadState.Finished && renderThread != ThreadState.Inactive && renderThread != ThreadState.Error) {
             Task.Delay(1000/60);
         }
     }
@@ -86,19 +92,22 @@ public class PanelManager
     }
 
     private async Task RenderThread() {
-        activePanelManager = this;
         renderThread = ThreadState.Running;
         try {
             while (instanceStopSignal == false && stopSignal == false) {
                 if (!IsRendering) {
                     renderThread = ThreadState.Waiting;
+                    if (waitingManagers.Contains(this) == false) {
+                        waitingManagers.Add(this);
+                    }
                     await Task.Delay(1000/60);
                     continue;
                 } else {
                     renderThread = ThreadState.Running;
                 }
 
-                BeforeRender?.Invoke(RootPanel, current);
+                if (BeforeRender != null)
+                    await BeforeRender.Invoke(RootPanel, current);
 
                 RenderBuffer next = new(Console.WindowWidth, Console.WindowHeight, ' ');
                 lock (RenderLock) {
@@ -132,23 +141,25 @@ public class PanelManager
             }
         }
         catch(Exception e) {
-            string exitReason = $"Exception:\n{e.Message}";
+            string exitReason = $"Exception:\n{e.Message}\n{e.StackTrace}";
             if (e.InnerException != null) {
-                exitReason += $"\nInner Exception:\n{e.InnerException.Message}";
+                exitReason += $"\nInner Exception:\n{e.InnerException.Message}\n{e.InnerException.StackTrace}";
             }
-            activePanelManager.ExitReason = exitReason;
+            ExitReason = exitReason;
+            renderThread = ThreadState.Error;
         }
         finally {
             Console.ForegroundColor = ConsoleColor.White;
             if (activePanelManager == this) {
                 activePanelManager = null;
             }
+            if (renderThread != ThreadState.Error)
             renderThread = ThreadState.Finished;
         }
     }
 
     private void InputThread(Action<ConsoleKeyInfo>? handleInput) {
-        while (stopSignal == false && instanceStopSignal == false) {
+        while (stopSignal == false && instanceStopSignal == false && renderThread != ThreadState.Error && renderThread != ThreadState.Finished) {
             if (!IsRendering) {
                 Task.Delay(1000/60);
                 continue;

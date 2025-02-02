@@ -12,5 +12,7 @@ public abstract class PanelBase : IRenderable {
         }
     }
 
+    public string PanelName { init; get; } = "";
+
     public abstract void Render(int top, int left, int width, int height, RenderBuffer buffer);
 }
