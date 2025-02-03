@@ -17,8 +17,8 @@ public class PanelManager
     public Action<ConsoleKeyInfo>? HandleInputMethod {get; set;}
     public Func<PanelBase, RenderBuffer, Task>? BeforeRender {get; set;} = null;
     public string? ExitReason {get; private set;} = null;
-    private bool debug_ColorUpdates = true;
-    public bool Debug_ColorUpdates {get; set;} = true;
+    private bool debug_ColorUpdates = false;
+    public bool Debug_ColorUpdates {get; set;} = false;
     private bool instanceStopSignal = false;
     private ThreadState renderThread = ThreadState.Inactive;
     private RenderBuffer last = new(Console.WindowWidth, Console.WindowHeight); 
@@ -64,10 +64,7 @@ public class PanelManager
 
         activePanelManager = this;
         _ = Task.Run(() => RenderThread());
-        var inputMethod = HandleInputMethod;
-        if (inputMethod != null) {
-            InputThread(inputMethod);
-        }
+        InputThread();
         while (renderThread != ThreadState.Finished && renderThread != ThreadState.Inactive && renderThread != ThreadState.Error) {
             Task.Delay(1000/60);
         }
@@ -93,6 +90,8 @@ public class PanelManager
 
     private async Task RenderThread() {
         renderThread = ThreadState.Running;
+        last = new(Console.WindowWidth, Console.WindowHeight);
+        current = new(Console.WindowWidth, Console.WindowHeight);
         try {
             while (instanceStopSignal == false && stopSignal == false) {
                 if (!IsRendering) {
@@ -158,8 +157,8 @@ public class PanelManager
         }
     }
 
-    private void InputThread(Action<ConsoleKeyInfo>? handleInput) {
-        while (stopSignal == false && instanceStopSignal == false && renderThread != ThreadState.Error && renderThread != ThreadState.Finished) {
+    private void InputThread() {
+        while (stopSignal == false && instanceStopSignal == false && renderThread != ThreadState.Error && renderThread != ThreadState.Finished && HandleInputMethod != null) {
             if (!IsRendering) {
                 Task.Delay(1000/60);
                 continue;
@@ -169,7 +168,7 @@ public class PanelManager
                 continue;
             }
             ConsoleKeyInfo key = Console.ReadKey(true);
-            handleInput?.Invoke(key);
+            HandleInputMethod?.Invoke(key);
         };
     }
 }

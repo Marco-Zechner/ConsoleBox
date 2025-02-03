@@ -40,9 +40,14 @@ public class Test2
 
     public static void Run()
     {
+        mainScreen.Panels.Clear();
+
         mainScreen.Panels.Add(dynamicPane);
         mainScreen.AddSeperator('=');
         mainScreen.Panels.Add(keybindsPane);
+
+        // ((SplitPane)ConsoleManager.RootPanel).Panels.Add(mainScreen); //this breaks everything... why?
+        //oh ... because mainScreen is already the root panel... so circular reference ... endless loop, I need to add a exception for this...
 
         ConsoleManager.Start();
     }
@@ -97,13 +102,10 @@ public class Test2
                 if (Floating == null)
                 {
                     Floating = new FloatingPane() {
-                        PanelName = "Menu Floating"
+                        PanelName = "Menu Floating",
                     };
-                    menuSplit = new SplitPane
-                    {
-                        Orientation = Orientation.Horizontal,
-                        PanelName = "Menu Split"
-                    };
+                    menuSplit = Floating.Pane;
+                    menuSplit.Orientation = Orientation.Horizontal;
 
                     leftMenu = new DisplayPane
                     {
@@ -120,13 +122,11 @@ public class Test2
                     menuSplit.Panels.Add(leftMenu);
                     menuSplit.AddSeperator();
                     menuSplit.Panels.Add(rightMenu);
-
-                    Floating.Pane.Panels.Add(menuSplit);
                 }
                 else {
                     menuSplit = Floating.Pane.Panels[0] as SplitPane;
                     leftMenu = menuSplit?.Panels[0] as DisplayPane;
-                    rightMenu = menuSplit?.Panels[2] as DisplayPane;
+                    rightMenu = menuSplit?.Panels[1] as DisplayPane;
                 }
 
                 Floating.IsVisible = true;
@@ -139,6 +139,8 @@ public class Test2
                 rightMenu.Content = menuItems[menuIndex].menuContent;
 
                 ConsoleManager.HandleInputMethod = MenuInput;
+
+                ((SplitPane)ConsoleManager.RootPanel).Floating = Floating;
                 return;
             }
         
