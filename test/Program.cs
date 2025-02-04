@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using MarcoZechner.ConsoleBox;
 
 namespace MarcoZechner.Test;
@@ -38,7 +39,8 @@ public class Program{
     };
 
 
-    public static void Main(){
+    public static async Task Main(){
+        // await Task.Run(WriteTest.Run);
         main.Start();
         Console.WriteLine("Stopped all Panels");
     }

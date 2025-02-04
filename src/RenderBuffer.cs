@@ -91,6 +91,40 @@ public class RenderBuffer(int width, int height)
         return hasChanges;
     }
 
+    public static bool GetLineChanges(RenderBuffer before, RenderBuffer after, out StringBuilder changes, out (int left, int top) start) {
+        bool hasChanges = false;
+        StringBuilder temp = new();
+        changes = new();
+        start = (0, 0);
+
+        for (int y = 0; y < after.Height; y++) {
+            for (int x = 0; x < after.Width; x++) {
+                if (y >= before.Height || x >= before.Width) {
+                    if (temp.Length == 0) {
+                        start = (x, y);
+                    }
+                    temp.Append(after.Buffer[y, x]);
+                    changes = new StringBuilder(temp.ToString());
+                    hasChanges = true;
+                    continue;
+                }
+
+                if (before.Buffer[y, x] != after.Buffer[y, x] && after.Buffer[y, x] != null) {
+                    if (temp.Length == 0) {
+                        start = (x, y);
+                    }
+                    temp.Append(after.Buffer[y, x]);
+                    changes = new StringBuilder(temp.ToString());
+                    hasChanges = true;
+                } else if (temp.Length > 0) {
+                    temp.Append(before.Buffer[y, x]);
+                }
+            }
+            temp.Append('\n');
+        }
+        return hasChanges;
+    }
+
     public void Render() {
         List<(int x, int y, StringBuilder sb)> lines = [];
         for (int y = 0; y < Height; y++) {

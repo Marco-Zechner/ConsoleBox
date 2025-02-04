@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace MarcoZechner.ConsoleBox;
 
 public class PanelManager
@@ -125,7 +127,8 @@ public class PanelManager
                     changes.Render();
                 }
 
-                bool renderThisTime = RenderBuffer.GetChanges(current, next, out changes);
+                // bool renderThisTime = RenderBuffer.GetChanges(current, next, out changes);
+                bool renderThisTime = RenderBuffer.GetLineChanges(current, next, out StringBuilder text, out var pos);
                 if (debug_ColorUpdates != Debug_ColorUpdates && !Debug_ColorUpdates) {
                     debug_ColorUpdates = Debug_ColorUpdates;
                     renderThisTime = true;
@@ -134,7 +137,15 @@ public class PanelManager
                 if (renderThisTime) {
                     current = next;
                     Console.ForegroundColor = ConsoleColor.White;
-                    changes.Render();
+                    // if (debug_ColorUpdates) {
+                        // changes.Render();
+                    // }
+                    // else { 
+                        // // SetPosition to skip existing parts is more expensive that rewriting everything...
+                        // current.Render();
+                    // }
+                    Console.SetCursorPosition(pos.left, pos.top);
+                    Console.Write(text);
                 }
                 await Task.Delay(1000/ 60);
             }
