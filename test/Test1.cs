@@ -18,12 +18,14 @@ public class Test1{
 
     private static readonly DisplayPane left = new() {
         Content = "Left",
-        PanelName = "Left Pane"
+        PanelName = "Left Pane",
+        Truncate = true
     };
 
     private static readonly DisplayPane right = new() {
         Content = "Right",
-        PanelName = "Right Pane"
+        PanelName = "Right Pane",
+        Truncate = false
     };
 
     private static readonly PanelManager subManager = new() {
@@ -54,12 +56,18 @@ public class Test1{
 
         else if (key.Key == ConsoleKey.LeftArrow)
         {
-            selectedPane = left;
+            if (key.Modifiers.HasFlag(ConsoleModifiers.Control))
+                selectedPane.HorizontalOffset--;
+            else
+                selectedPane = left;
         }
 
         else if (key.Key == ConsoleKey.RightArrow)
         {
-            selectedPane = right;
+            if (key.Modifiers.HasFlag(ConsoleModifiers.Control))
+                selectedPane.HorizontalOffset++;
+            else
+                selectedPane = right;
         }
 
         else if (key.Key == ConsoleKey.Backspace)

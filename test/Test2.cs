@@ -77,6 +77,11 @@ public class Test2
 
     private static void HandleInput(ConsoleKeyInfo key)
     {
+        if (key.Key == ConsoleKey.Tab) {
+            ConsoleManager.Debug_ColorUpdates = !ConsoleManager.Debug_ColorUpdates;
+            return;
+        }
+
         if (key.Key == ConsoleKey.Enter)
         {
             editorPane.Content += "\n";

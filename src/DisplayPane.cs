@@ -9,6 +9,22 @@ public sealed class DisplayPane : PanelBase
         set => content = value;
     }
 
+    private bool truncate = false;
+    public bool Truncate
+    {
+        get => truncate;
+        set => truncate = value;
+    }
+
+    public int ContentWidth => content.Split('\n').Max(x => x.Length);
+
+    private int horizontalOffset = 0;
+    public int HorizontalOffset
+    {
+        get => horizontalOffset;
+        set => horizontalOffset = value;
+    }
+
     public override void Render(int top, int left, int width, int height, RenderBuffer buffer)
     {
         if (width < 1 || height < 1)
@@ -17,14 +33,21 @@ public sealed class DisplayPane : PanelBase
         }
 
         content = content.Replace("\t", "    ").Replace("\r\n", "\n").Replace("\r", "\n");
+        horizontalOffset = Math.Max(0, Math.Min(horizontalOffset, ContentWidth - width));
 
         List<string> lines = [.. content.Split('\n', height)];
         for (int i = 0; i < lines.Count && lines.Count <= height; i++) {
-            if (lines[i].Length > width) {
-                lines.Insert(i + 1, lines[i][width..]);
-                lines[i] = lines[i][..width];
+            if (!truncate) {
+                if (lines[i].Length > width) {
+                    lines.Insert(i + 1, lines[i][width..]);
+                    lines[i] = lines[i][..width];
+                }
+                lines[i] = lines[i].PadRight(width);
+                continue;
             }
-            lines[i] = lines[i].PadRight(width);
+
+            if (lines[i].Length > width)
+                lines[i] = lines[i][horizontalOffset..(width + horizontalOffset)];
         }
         for (int i = 0; i < height; i++)
         {
