@@ -46,8 +46,7 @@ public sealed class DisplayPane : PanelBase
                 continue;
             }
 
-            if (lines[i].Length > width)
-                lines[i] = lines[i][horizontalOffset..(width + horizontalOffset)];
+            lines[i] = lines[i].PadRight(Math.Max(ContentWidth, width))[horizontalOffset..(width + horizontalOffset)];
         }
         for (int i = 0; i < height; i++)
         {
