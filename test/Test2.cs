@@ -24,7 +24,7 @@ public class Test2
 
     private static DisplayPane keybindsPane = new(){
         RelativeSize = 0.2f,
-        PanelName = "Keybinds Pane"
+        PanelName = "Keybinds Pane",
     };
 
     private static SplitPane mainScreen = new(){
@@ -46,6 +46,7 @@ public class Test2
         mainScreen.AddSeperator('=');
         mainScreen.Panels.Add(keybindsPane);
 
+        //TODO: fix this
         // ((SplitPane)ConsoleManager.RootPanel).Panels.Add(mainScreen); //this breaks everything... why?
         //oh ... because mainScreen is already the root panel... so circular reference ... endless loop, I need to add a exception for this...
 
