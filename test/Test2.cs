@@ -48,7 +48,7 @@ public class Test2
 
         //TODO: fix this
         // ((SplitPane)ConsoleManager.RootPanel).Panels.Add(mainScreen); //this breaks everything... why?
-        //oh ... because mainScreen is already the root panel... so circular reference ... endless loop, I need to add a exception for this...
+        //oh ... because mainScreen is already the root panel... so circular reference ... endless loop, I need to throw a exception for this...
 
         ConsoleManager.Start();
     }
@@ -86,6 +86,12 @@ public class Test2
         if (key.Key == ConsoleKey.Enter)
         {
             editorPane.Content += "\n";
+            return;
+        }
+
+        if (key.Key == ConsoleKey.F1) {
+            keybindsPane.IsVisible = !keybindsPane.IsVisible;
+            mainScreen.Panels[1].IsVisible = keybindsPane.IsVisible; //seperator
             return;
         }
 

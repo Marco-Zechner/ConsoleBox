@@ -29,6 +29,8 @@ public abstract class PanelBase : IRenderable {
         }
     }
 
+    public bool IsVisible { get; set; } = true;
+
 
     public string PanelName { init; get; } = "";
 
